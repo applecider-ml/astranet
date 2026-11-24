@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ASTRANet</title>
+<meta name="description" content="Spectroscopic classification and object-level novelty detection for transients.">
+<style>
+:root{--bg:#fffafc;--card:#ffffff;--ink:#1f2933;--muted:#5f6b7a;--line:#f1d5e0;--accent:#e11d6a;--deep:#9f1239;--pale:#fce7f0;--code:#fdf2f7}
+@media (prefers-color-scheme:dark){:root{--bg:#17121a;--card:#211a25;--ink:#f3eef2;--muted:#b6a9b4;--line:#3a2a36;--accent:#f472b6;--deep:#fda4c4;--pale:#33202c;--code:#261c29}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:980px;margin:0 auto;padding:0 16px 64px}
+header{padding:56px 0 28px;border-bottom:1px solid var(--line)}
+h1{font-size:2.6rem;line-height:1.1;margin:0 0 10px;color:var(--deep);letter-spacing:-.02em}
+h2{font-size:1.45rem;margin:48px 0 12px;color:var(--deep)}
+h3{font-size:1.05rem;margin:0 0 6px}
+p{margin:0 0 14px}
+.lead{font-size:1.15rem;color:var(--muted);max-width:46em}
+a{color:var(--accent)}
+.links{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px}
+.links a{display:inline-block;padding:8px 16px;border-radius:999px;border:1px solid var(--accent);text-decoration:none;font-weight:600;font-size:.95rem}
+.links a.primary{background:var(--accent);color:#fff}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px;margin-top:8px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px}
+.card p{color:var(--muted);margin:0;font-size:.95rem}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin:26px 0 0}
+.stat{background:var(--pale);border-radius:14px;padding:16px}
+.stat b{display:block;font-size:1.9rem;line-height:1.1;color:var(--deep)}
+.stat span{font-size:.88rem;color:var(--muted)}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.95rem;background:var(--card);border-radius:12px;overflow:hidden}
+th,td{padding:9px 12px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+th:first-child,td:first-child{text-align:left;white-space:normal}
+thead th{background:var(--pale);color:var(--deep);font-weight:600}
+tbody tr:last-child td{border-bottom:0}
+figure{margin:18px 0 0;background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px}
+figure img{display:block;max-width:100%;height:auto;margin:0 auto}
+figcaption{font-size:.9rem;color:#5f6b7a;margin-top:10px}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}
+pre{background:var(--code);border:1px solid var(--line);border-radius:12px;padding:14px;overflow-x:auto;font-size:.88rem;line-height:1.5}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+footer{margin-top:56px;padding-top:18px;border-top:1px solid var(--line);color:var(--muted);font-size:.9rem}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <h1>ASTRANet</h1>
+  <p class="lead">Spectroscopic classification of transients that works with or without a redshift, and a novelty score for every object that tells an observer when a source looks unlike anything in the training classes.</p>
+  <div class="links">
+    <a class="primary" href="https://github.com/applecider-ml/astranet">Code</a>
+    <a href="https://github.com/asasli/luna">LUNA anomaly scores</a>
+    <a href="https://github.com/applecider-ml/applecider-agents">Triage agent</a>
+    <a href="https://github.com/applecider-ml">AppleCiDEr</a>
+  </div>
+  <div class="stats">
+    <div class="stat"><b>89.0%</b><span>accuracy with redshift and phase</span></div>
+    <div class="stat"><b>86.2%</b><span>accuracy from the spectrum alone</span></div>
+    <div class="stat"><b>52%</b><span>of rare objects recovered at a 1% alarm rate</span></div>
+    <div class="stat"><b>89%</b><span>of rare objects recovered at a 15% alarm rate</span></div>
+  </div>
+</header>
+
+<h2>What it does</h2>
+<div class="grid">
+  <div class="card"><h3>Classifier</h3><p>Seven classes (Ia, Ibc, SLSN, II, AGN, CV, TDE) from an observed-frame spectrum. Redshift and phase enter through FiLM conditioning and are dropped at random during training, so the model accepts a spectrum with no metadata. Twelve members: six with a SpectraNet backbone, six with a dilated temporal convolutional backbone.</p></div>
+  <div class="card"><h3>Novelty</h3><p>One score per object from all its spectra: the mean embedding, 23 spectral descriptors and the 16 LUNA anomaly scores. The score is compared with ordinary objects of the same redshift stratum, which gives a p-value and alarms at 1, 5, 10 and 15%.</p></div>
+  <div class="card"><h3>Uncertainty</h3><p>Object-level conformal prediction sets at a 90% target, stratified jointly by anomaly score and classifier confidence, so the coverage holds for the unusual objects where a single threshold falls short.</p></div>
+</div>
+
+<h2>Classification</h2>
+<p>Test split: 3,394 spectra of 1,666 objects. The same trained model is evaluated with the metadata withheld at inference.</p>
+<div class="scroll"><table>
+<thead><tr><th>Input</th><th>Accuracy</th><th>Macro recall</th></tr></thead>
+<tbody>
+<tr><td>Spectrum, redshift and phase</td><td>89.0%</td><td>83.4%</td></tr>
+<tr><td>Spectrum and redshift</td><td>88.5%</td><td>81.4%</td></tr>
+<tr><td>Spectrum and phase</td><td>87.7%</td><td>80.8%</td></tr>
+<tr><td>Spectrum only</td><td>86.2%</td><td>78.6%</td></tr>
+</tbody></table></div>
+<figure><img src="assets/confusion.png" alt="Confusion matrix of the seven classes on the test split" style="max-width:520px">
+<figcaption>Confusion matrix of the seven classes on the test split, with redshift and phase.</figcaption></figure>
+
+<h2>Novelty</h2>
+<p>The rare set holds 60 objects in nine classes that the classifier never saw: FBOTs, ILRTs, luminous red novae, calcium-rich transients, afterglows, a long GRB, QSOs, blazars and a BL Lac. The alarm rate is the fraction of ordinary objects that alarm.</p>
+<div class="scroll"><table>
+<thead><tr><th>Rare objects recovered at an alarm rate of</th><th>1%</th><th>5%</th><th>10%</th><th>15%</th></tr></thead>
+<tbody>
+<tr><td>No anomaly exposure (mean of the 16 LUNA scores)</td><td>51.5%</td><td>74.1%</td><td>82.3%</td><td>86.9%</td></tr>
+<tr><td>Class withheld from the head (ExtraTrees + LUNA summaries)</td><td>50.7%</td><td>68.4%</td><td>82.8%</td><td>88.2%</td></tr>
+<tr><td>All of Tier 1 withheld (35 objects)</td><td>32.0%</td><td>57.1%</td><td>71.4%</td><td>82.7%</td></tr>
+<tr><td>Classifier confidence alone</td><td>24.8%</td><td></td><td></td><td></td></tr>
+</tbody></table></div>
+<div class="two">
+<figure><img src="assets/luna_ablation.png" alt="Recall of rare objects with and without the LUNA summaries at four alarm rates">
+<figcaption>The LUNA summaries raise the recall of withheld classes at every alarm rate.</figcaption></figure>
+<figure><img src="assets/conformal.png" alt="Coverage of conformal prediction sets by subgroup">
+<figcaption>Coverage of the 90% prediction sets by subgroup. The joint strata restore coverage for objects with a high anomaly score.</figcaption></figure>
+</div>
+
+<h2>In SkyPortal</h2>
+<p>ASTRANet runs as a SkyPortal analysis service. Every spectrum of the source goes through the twelve members, the class probabilities are averaged, and the novelty stage scores the object. The service returns a classification, annotations and a one-page report.</p>
+<div class="scroll" style="margin-top:18px"><table>
+<thead><tr><th>Service condition (phase withheld), target alarm rate</th><th>1%</th><th>5%</th><th>10%</th><th>15%</th></tr></thead>
+<tbody>
+<tr><td>Rare objects recovered, class withheld from the head</td><td>52%</td><td>70%</td><td>84%</td><td>89%</td></tr>
+<tr><td>Novae that alarm (ordinary for the novelty stage)</td><td>3%</td><td>9%</td><td>15%</td><td>21%</td></tr>
+<tr><td>Realised alarm rate on 1,666 test objects</td><td>1.3%</td><td>4.8%</td><td>10.0%</td><td>14.6%</td></tr>
+</tbody></table></div>
+
+<h2>Use it</h2>
+<pre><code>pip install "astranet[novelty] @ git+https://github.com/applecider-ml/astranet"
+python tools/fetch_weights.py --url &lt;astranet_checkpoints.tar.gz&gt; --novelty-url &lt;novelty.joblib&gt;
+
+python -m astranet.skyportal spectrum.dat --redshift 0.05 --report .</code></pre>
+<pre><code>from astranet.predict import Ensemble
+ens = Ensemble.from_dir("models")
+out = ens.predict(wavelength, flux, redshift=0.05)   # redshift optional
+print(out["predicted"], out["probability"])</code></pre>
+
+<h2>Citation</h2>
+<p>Sasli, A., et al. 2026, <em>ASTRANet: Metadata-Robust Spectroscopic Classification and Object-Level Novelty Detection</em>, submitted to PASP. The SpectraNet backbone is from Xu et al. (2026, PASP 138, 094504).</p>
+
+<footer>ASTRANet is part of <a href="https://github.com/applecider-ml">AppleCiDEr</a>. Code under the MIT license.</footer>
+</main>
+</body>
+</html>
