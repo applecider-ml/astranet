@@ -13,9 +13,9 @@ import argparse, hashlib, os, sys, tarfile, urllib.request
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
-MD5 = "329db18a3b75f6d90e4de77376f1736f"
+MD5 = "74fca0be7b86d4acce07f5ea0c137f60"
 NAME = "astranet_checkpoints.tar.gz"
-NOVELTY_MD5 = "4f1b14e832ce7aa1da299a63a4cbbedc"
+NOVELTY_MD5 = "452b7544d2eb032b7cec7ea6a5d48eca"
 NOVELTY_NAME = "novelty.joblib"
 
 
