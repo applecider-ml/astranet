@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Build the novelty bundle of the service (models/novelty_v1.joblib).
+"""Build the novelty bundle of the service (models/novelty.joblib).
 
-    python tools/build_novelty.py --service-dir <dir with svc_{val,test,rare}.npz> --out models/novelty_v1.joblib
+    python tools/build_novelty.py --service-dir <dir with svc_{val,test,rare}.npz> --out models/novelty.joblib
 
-Inputs: cache/v7fixcombo12 (training rows: reference of LUNA; meta of val, test, rare), the ensemble outputs in the
+Inputs: cache/astranet12 (training rows: reference of LUNA; meta of val, test, rare), the ensemble outputs in the
 service condition (pipelines/extract_service.py: redshift as catalogued, phase withheld) and the flux tensors of data/.
 Ordinary objects: the validation objects and the novae of the rare set. Exposed anomalies: the other rare classes.
 The ExtraTrees head is fitted on all of them; its thresholds come from out-of-fold scores of the ordinary objects
@@ -19,7 +19,7 @@ from sklearn.model_selection import StratifiedKFold
 REPO = Path(__file__).resolve().parents[1]; sys.path[:0] = [str(REPO / "pipelines"), str(REPO)]
 from _common import load_cache, load_config, make_astra_config                      # noqa: E402
 from astranet.model import build_hierarchy_mappings                                  # noqa: E402
-from astranet.sentinel import luna_dict                                              # noqa: E402
+from astranet.novelty import luna_dict                                              # noqa: E402
 from astranet.novelty import Novelty, descriptors, redshift_known, conformal_threshold, RATES  # noqa: E402
 from luna import LUNAPipeline                                                        # noqa: E402
 import luna                                                                          # noqa: E402
@@ -43,15 +43,15 @@ def aligned_flux(raw, meta, rare):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--cache", default=str(REPO / "cache/v7fixcombo12")); ap.add_argument("--data", default=str(REPO / "data")); ap.add_argument("--service-dir", required=True)
-    ap.add_argument("--out", default=str(REPO / "models/novelty_v1.joblib")); ap.add_argument("--report", default=str(REPO / "results/novelty_service.json")); ap.add_argument("--dump-features")
+    ap.add_argument("--cache", default=str(REPO / "cache/astranet12")); ap.add_argument("--data", default=str(REPO / "data")); ap.add_argument("--service-dir", required=True)
+    ap.add_argument("--out", default=str(REPO / "models/novelty.joblib")); ap.add_argument("--report", default=str(REPO / "results/novelty_service.json")); ap.add_argument("--dump-features")
     a = ap.parse_args(); cache, data = Path(a.cache), Path(a.data)
-    ac = make_astra_config(load_config(str(REPO / "configs/v7fixsn.yaml"))); f2c, _, _ = build_hierarchy_mappings(ac.hierarchy, ac.class_names)
+    ac = make_astra_config(load_config(str(REPO / "configs/spectranet.yaml"))); f2c, _, _ = build_hierarchy_mappings(ac.hierarchy, ac.class_names)
     train = load_cache(cache, "train"); pipe = LUNAPipeline(combiner="rank", fine_to_coarse=f2c); pipe.fit(luna_dict(train)); methods = list(pipe.active_methods)
-    Dtr = descriptors(aligned_flux(torch.load(data / "object-split-v7fix/train.pt", weights_only=False, map_location="cpu"), train["meta"], False))
+    Dtr = descriptors(aligned_flux(torch.load(data / "object-split/train.pt", weights_only=False, map_location="cpu"), train["meta"], False))
     med = np.median(Dtr, 0); iqr = np.diff(np.percentile(Dtr, [25, 75], axis=0), axis=0)[0] + 1e-6
     nov = Novelty(dict(luna=pipe, methods=methods, phys_med=med, phys_iqr=iqr)); O = {}
-    for s, cname, rawf in (("val", "val", "object-split-v7fix/val.pt"), ("test", "test", "object-split-v7fix/test.pt"), ("rare", "rare_unknown_combined", "rare_unknown.pt")):
+    for s, cname, rawf in (("val", "val", "object-split/val.pt"), ("test", "test", "object-split/test.pt"), ("rare", "rare_unknown_combined", "rare_unknown.pt")):
         meta = pickle.load(open(cache / f"{cname}_meta.pkl", "rb")); f = np.load(Path(a.service_dir) / f"svc_{s}.npz"); raw = torch.load(data / rawf, weights_only=False, map_location="cpu")
         X = aligned_flux(raw, meta, s == "rare"); S = nov.luna_scores(f["emb"], f["proj_fine"], f["fine_logits"], f["coarse_logits"]); P = nov.scaled_descriptors(X)
         ids = np.array([str(m["obj_id"]) for m in meta]); z = np.array([m.get("z") if m.get("z") is not None else np.nan for m in meta], float); u, inv = np.unique(ids, return_inverse=True)
@@ -69,7 +69,7 @@ def main():
     rep = dict(ordinary_objects=int(len(Xid)), novae_among_ordinary=int(isn.sum()), exposed_rare_objects=int(len(Xex)), exposed_classes=sorted(set(O["rare"]["classes"][~isn])),
                calibration={k: int(len(v)) for k, v in cal.items()}, out_of_fold_recall_exposed={f"{int(r * 100)}%": float(np.mean(oof[len(Xid):] > np.array([thr["redshift" if k else "no_redshift"][r] for k in O["rare"]["zk"][~isn]]))) for r in RATES},
                test_objects=dict(n=int(len(st)), n_no_redshift=int((~zt).sum()), alarm_rate={f"{int(r * 100)}%": dict(all=float(np.mean(st > np.array([thr[k][r] for k in tk]))), redshift=float(np.mean(st[zt] > thr["redshift"][r])), no_redshift=float(np.mean(st[~zt] > thr["no_redshift"][r]))) for r in RATES}))
-    bundle = dict(version="novelty_v1", luna=pipe, methods=methods, phys_med=med, phys_iqr=iqr, head=clf, calibration=cal, thresholds=thr, rates=RATES, luna_version=luna.__version__,
+    bundle = dict(version="1", luna=pipe, methods=methods, phys_med=med, phys_iqr=iqr, head=clf, calibration=cal, thresholds=thr, rates=RATES, luna_version=luna.__version__,
                   condition="redshift as catalogued, phase withheld", info=rep)
     Path(a.out).parent.mkdir(parents=True, exist_ok=True); joblib.dump(bundle, a.out, compress=3); Path(a.report).parent.mkdir(parents=True, exist_ok=True); json.dump(rep, open(a.report, "w"), indent=1)
     print(json.dumps(rep, indent=1)); print("bundle", a.out, f"{Path(a.out).stat().st_size / 1e6:.1f} MB", flush=True)

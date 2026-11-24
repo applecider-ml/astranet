@@ -1,22 +1,22 @@
 #!/usr/bin/env python3
 """Download and unpack the paper's twelve checkpoints into models/.
 
-    python tools/fetch_weights.py --url <release or Zenodo URL of astranet_v2_checkpoints.tar.gz>
-    python tools/fetch_weights.py --file /path/to/astranet_v2_checkpoints.tar.gz
+    python tools/fetch_weights.py --url <release or Zenodo URL of astranet_checkpoints.tar.gz>
+    python tools/fetch_weights.py --file /path/to/astranet_checkpoints.tar.gz
 
 The URL can also be given as $ASTRANET_WEIGHTS_URL. The archive is verified against its MD5.
 The novelty bundle of the service is a second, small asset:
 
-    python tools/fetch_weights.py --novelty-url <URL of novelty_v1.joblib>      (or --novelty-file)
+    python tools/fetch_weights.py --novelty-url <URL of novelty.joblib>      (or --novelty-file)
 """
 import argparse, hashlib, os, sys, tarfile, urllib.request
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
 MD5 = "329db18a3b75f6d90e4de77376f1736f"
-NAME = "astranet_v2_checkpoints.tar.gz"
+NAME = "astranet_checkpoints.tar.gz"
 NOVELTY_MD5 = "4f1b14e832ce7aa1da299a63a4cbbedc"
-NOVELTY_NAME = "novelty_v1.joblib"
+NOVELTY_NAME = "novelty.joblib"
 
 
 def md5(path, chunk=1 << 22):
@@ -49,7 +49,7 @@ def main():
         for m in t.getmembers():
             if not (root / m.name).resolve().is_relative_to(root) or m.issym() or m.islnk(): sys.exit(f"unsafe member {m.name}")
         t.extractall(root)
-    n = len(list((root / "models").glob("trained_v7fix*/seed*/checkpoint_*.pt"))); print(f"{n} checkpoints under {root / 'models'}")
+    n = len(list((root / "models").glob("*/seed*/checkpoint_*.pt"))); print(f"{n} checkpoints under {root / 'models'}")
 
 
 if __name__ == "__main__":
