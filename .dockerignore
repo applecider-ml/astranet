@@ -1,0 +1,10 @@
+.git
+models/
+cache/
+results/
+data/
+docs/
+**/__pycache__/
+*.pt
+*.npz
+*.tar.gz
