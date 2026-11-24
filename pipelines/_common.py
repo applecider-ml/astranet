@@ -1,12 +1,8 @@
-"""Shared utilities for the ASTRAnet pipelines.
+"""Shared utilities for the ASTRANet pipelines.
 
 - config loading (configs/default.yaml)
-- ensemble specs (6model / 7model) — the SAME model set is used for every split
-- model loading + consistent feature extraction (emb / logits / proj / per-model softmax)
-
-The extraction logic mirrors the original notebook (anomaly_detection.ipynb) but is
-parametrized so that *every* data split is extracted with the identical model set,
-which structurally prevents the ID=7 / rare=6 cache mismatch.
+- ensemble specifications: the same members are used for every split
+- model loading and feature extraction (embedding, logits, projection, per-member softmax)
 """
 from __future__ import annotations
 
@@ -29,43 +25,23 @@ sys.path.insert(0, str(REPO))
 from astranet.config import ASTRAConfig, get_raw_to_group          # noqa: E402
 from astranet.model import ASTRANet, build_hierarchy_mappings      # noqa: E402
 
-# ── Ensemble specifications (consistent — used for ALL splits) ────────
+# ── Ensemble specifications: three seeds, the best and the weight-averaged checkpoint of each ──
+_SIX = {42: ["best", "swa"], 123: ["best", "swa"], 7: ["best", "swa"]}
 ENSEMBLE_SPECS = {
-    "6model": {42: ["best", "swa"], 123: ["best", "swa"], 7: ["best", "swa"]},
-    "7model": {42: ["best", "swa", "peak_assembly"], 123: ["best", "swa"], 7: ["best", "swa"]},
-    # Aliases of 6model for retrained weights: same composition, DISTINCT names so
-    # cache/<spec> and results/<spec> never collide with the paper runs.
-    # v7new6 -> configs/v7new.yaml (re-randomized split, fixed labels)
-    # v7fix6 -> configs/v7fix.yaml (IDENTICAL v7 membership, only labels fixed —
-    #           the apples-to-apples comparison against the paper weights)
-    "v7new6": {42: ["best", "swa"], 123: ["best", "swa"], 7: ["best", "swa"]},
-    "v7fix6": {42: ["best", "swa"], 123: ["best", "swa"], 7: ["best", "swa"]},
-    # v7fixssl6 -> configs/v7fix_ssl.yaml (v7fix split, SSL-warm-started seeds)
-    "v7fixssl6": {42: ["best", "swa"], 123: ["best", "swa"], 7: ["best", "swa"]},
-    # Single-model specs (NO embedding averaging) — for anomaly detection, where
-    # ensemble-averaging can smooth out the anomaly signal.
-    "s42best": {42: ["best"]},
-    "s123best": {123: ["best"]},
-    "s7best": {7: ["best"]},
-    "s42swa": {42: ["swa"]},
-    # v7fixmd6 -> configs/v7fixmd.yaml (v7fix + metadata dropout at training; no-z inference)
-    "v7fixmd6": {42: ["best", "swa"], 123: ["best", "swa"], 7: ["best", "swa"]},
-    # metadata-dropout sweep, selected on the ROBUST validation criterion (never test/challenging)
-    "v7fixmd26": {42: ["best", "swa"], 123: ["best", "swa"], 7: ["best", "swa"]},   # z 0.2 / phase 0.15
-    "v7fixmd46": {42: ["best", "swa"], 123: ["best", "swa"], 7: ["best", "swa"]},   # z 0.4 / phase 0.3
-    # v7fixsn6 -> configs/v7fixsn.yaml (v7fixmd recipe with the SpectraNet backbone of Xu+2026 in place of stem+TCN)
-    "v7fixsn6": {42: ["best", "swa"], 123: ["best", "swa"], 7: ["best", "swa"]},
+    "tcn6": _SIX,                       # configs/tcn.yaml: dilated temporal convolutional backbone
+    "spectranet6": _SIX,                # configs/spectranet.yaml: SpectraNet backbone (Xu et al. 2026)
+    "tcn_reference6": _SIX,             # configs/tcn_reference.yaml: the same without metadata dropout
+    "spectranet_reference6": _SIX,      # configs/spectranet_reference.yaml
 }
 # Composite specs: the union of two trained ensembles with different backbones. The cache of a
 # composite is built by pipelines/build_combo_cache.py from the caches of its parts (mean logits,
-# concatenated embeddings); the paper's model is v7fixcombo12 = v7fixmd6 (TCN) + v7fixsn6 (SpectraNet).
+# concatenated embeddings); the paper's model is astranet12 = tcn6 + spectranet6.
 COMPOSITE_SPECS = {
-    "v7fixcombo12": [("v7fixmd6", "configs/v7fixmd.yaml"), ("v7fixsn6", "configs/v7fixsn.yaml")],
+    "astranet12": [("tcn6", "configs/tcn.yaml"), ("spectranet6", "configs/spectranet.yaml")],
 }
 CKPT_FILES = {
     "best": "checkpoint_best.pt",
     "swa": "checkpoint_swa.pt",
-    "peak_assembly": "checkpoint_peak_assembly.pt",
 }
 
 
@@ -183,7 +159,7 @@ def load_cache(cache_dir: Path, name: str) -> dict:
     return d
 
 
-# ── Rare-set (289) reporting tiers ────────────────────────────────────
+# ── Rare-set reporting tiers ────────────────────────────────────
 # Tier 1: genuinely novel phenomena — no trained counterpart class at all.
 # Tier 2: rare members of TRAINED families (novae ⊂ CV; QSO/Blazar/BL Lac ⊂ AGN)
 #         — lower AD sensitivity here is partly CORRECT behaviour, report separately.

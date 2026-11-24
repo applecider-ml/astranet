@@ -1,5 +1,5 @@
 """Per-member embeddings / logits for val, test and rare (for LUNA-on-ensemble ablations).
-Usage: python pipelines/extract_members.py --spec v7fixsn6 --config configs/v7fixsn.yaml
+Usage: python pipelines/extract_members.py --spec spectranet6 --config configs/spectranet.yaml
 Writes cache/<spec>/members_{val,test,rare}.npz with emb (M,N,192), fine_logits (M,N,7) and obj ids."""
 import argparse, pickle, numpy as np, torch
 from pathlib import Path

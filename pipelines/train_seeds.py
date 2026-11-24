@@ -3,7 +3,7 @@
 
 Optional: the repo ships with `fetch_paper_weights.py` for the reference checkpoints.
 Use this only to retrain. A seed with an existing test_results.json is skipped.
-Set `weights_source: trained` in configs/default.yaml to use these instead of paper.
+The checkpoints are written to models/<train_out>/seed<seed>/.
 
 Usage: python pipelines/train_seeds.py
 """

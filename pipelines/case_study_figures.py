@@ -3,7 +3,7 @@
 the UMAP of the ensemble embedding (test split + rare set), and its four-family anomaly signature
 (mean rank of the 16 LUNA scores vs the validation split, no outlier exposure).
 
-Usage: python pipelines/case_study_figures.py --spec v7fixmd6 --objects ZTF18acyvlkx ZTF21acddxti ZTF24abjjpbo
+Usage: python pipelines/case_study_figures.py --spec tcn6 --objects ZTF18acyvlkx ZTF21acddxti ZTF24abjjpbo
 Outputs -> results/<spec>/figures/case_studies_light.{pdf,png}
 """
 from __future__ import annotations
@@ -11,7 +11,7 @@ import argparse
 import numpy as np, torch
 from _common import REPO, resolve_path, load_cache, load_config, make_astra_config
 from astranet.model import build_hierarchy_mappings
-from astranet.sentinel import luna_dict
+from astranet.novelty import luna_dict
 FAMILY = {"msp": "uncertainty", "entropy": "uncertainty", "energy": "uncertainty", "odin": "uncertainty",
           "mahal_global": "distance", "mahal_class": "distance", "mahal_within": "distance", "knn": "distance",
           "cosine": "distance", "typicality": "distance", "gmm": "density", "iforest": "density", "lof": "density",
@@ -20,7 +20,7 @@ FAMS = ["uncertainty", "distance", "density", "hybrid"]
 
 
 def main():
-    ap = argparse.ArgumentParser(); ap.add_argument("--spec", default="v7fixmd6"); ap.add_argument("--config", default=None)
+    ap = argparse.ArgumentParser(); ap.add_argument("--spec", default="tcn6"); ap.add_argument("--config", default=None)
     ap.add_argument("--objects", nargs="+", required=True); args = ap.parse_args()
     cfg = load_config(args.config); ac = make_astra_config(cfg); f2c, _, _ = build_hierarchy_mappings(ac.hierarchy, ac.class_names)
     cache = REPO / "cache" / args.spec

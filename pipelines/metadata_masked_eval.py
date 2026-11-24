@@ -4,7 +4,7 @@ test split with redshift and/or phase withheld (set to NaN -> validity flag 0).
 
 This answers "does the deployed model work without z/phase at inference?" without retraining.
 
-Usage: python pipelines/metadata_masked_eval.py --spec v7fix6
+Usage: python pipelines/metadata_masked_eval.py --spec tcn6 --config configs/tcn.yaml
 Outputs -> results/<spec>/classification/metadata_masked.json (+ .md table)
 """
 from __future__ import annotations
@@ -46,14 +46,14 @@ def metrics(prob, y, K):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--spec", choices=list(ENSEMBLE_SPECS), default="v7fix6")
+    ap.add_argument("--spec", choices=list(ENSEMBLE_SPECS), default="tcn6")
     ap.add_argument("--config", default=None)
     ap.add_argument("--split", choices=["test", "val"], default="test",
                     help="val = model-selection view (no test contact); test = final report")
     args = ap.parse_args()
     cfg = load_config(args.config); ac = make_astra_config(cfg); device = device_for(cfg)
     _, _, sup = build_hierarchy_mappings(ac.hierarchy, ac.class_names)
-    models, labels = load_ensemble(args.spec, REPO / "models" / cfg.get("weights_source", "paper"), ac, len(sup), device)
+    models, labels = load_ensemble(args.spec, REPO / "models" / cfg.get("weights_source", "tcn"), ac, len(sup), device)
     _, _, val_loader, test_loader, _ = build_loaders(ac)
     if args.split == "val": test_loader = val_loader
     K = len(ac.class_names)

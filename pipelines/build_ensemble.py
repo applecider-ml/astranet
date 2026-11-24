@@ -1,17 +1,16 @@
 #!/usr/bin/env python3
-"""Extract consistent ensemble features for ALL splits and cache them.
+"""Extract the ensemble features of every split and cache them.
 
-The SAME model set (6model or 7model) is used for train/val/test/rare. We assert an
-identical model count for every split — this is the structural fix for the original
-ID=7 / rare=6 cache mismatch.
+The same members are used for train, val, test and the rare set, and the script asserts an
+identical member count for every split.
 
 Outputs (cache/<spec>/):
     train.npz, val.npz, test.npz, rare_unknown_combined.npz  (+ *_meta.pkl)
     per_model_softmax.npz   (val_softmax, rare_softmax)
 
 Usage:
-    python pipelines/build_ensemble.py --spec 6model
-    python pipelines/build_ensemble.py --spec 7model --force
+    python pipelines/build_ensemble.py --spec tcn6 --config configs/tcn.yaml
+    python pipelines/build_ensemble.py --spec spectranet6 --config configs/spectranet.yaml
 """
 from __future__ import annotations
 
@@ -30,7 +29,7 @@ from astranet.dataset import build_loaders, make_loader
 
 
 def _rare_loader(ac, rare_pt: Path):
-    """Build the rare/unknown loader from the combined .pt (notebook schema)."""
+    """Build the rare/unknown loader from the combined .pt."""
     rd = torch.load(str(rare_pt), map_location="cpu")
     meta = [{
         "obj_id": rd["obj_id"][i], "file_path": rd["file_path"][i],
@@ -66,7 +65,7 @@ def main():
         print(f"[{args.spec}] cache already exists at {cache_dir} — skipping (use --force)")
         return
 
-    models_dir = REPO / "models" / cfg.get("weights_source", "paper")
+    models_dir = REPO / "models" / cfg.get("weights_source", "tcn")
     members, labels = load_ensemble(args.spec, models_dir, ac, n_coarse, device)
     print(f"[{args.spec}] ensemble = {len(members)} models: {labels}")
     print(f"Device: {device}")
