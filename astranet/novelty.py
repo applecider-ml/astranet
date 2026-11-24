@@ -8,7 +8,7 @@ the novelty score. The score is compared with ordinary calibration objects of th
 stratum (redshift known or unknown), which gives a p-value and alarms at 1, 5, 10 and 15 %.
 
     from astranet.novelty import Novelty
-    nov = Novelty.load("models/novelty_v1.joblib")
+    nov = Novelty.load("models/novelty.joblib")
     out = nov.score(features, grid_fluxes, redshift=0.05)   # features: list of Ensemble outputs
 
 The bundle is built by tools/build_novelty.py.
@@ -46,6 +46,17 @@ def descriptors(X) -> np.ndarray:
     for lo, hi in WINDOWS:
         w = (WL >= lo) & (WL < hi); feats.append(res[:, w].mean(1) / m[:, 0])
     return np.column_stack(feats).astype(np.float32)
+
+
+def luna_dict(f: dict) -> dict:
+    """Adapt an feature cache entry to LUNA's input format."""
+    o = {"embeddings": f["emb"].astype(np.float32),
+         "logits": f["fine_logits"].astype(np.float32),
+         "coarse_logits": f["coarse_logits"].astype(np.float32),
+         "projections": f["proj_fine"].astype(np.float32)}
+    if f.get("labels") is not None:
+        o["labels"] = np.asarray(f["labels"])
+    return o
 
 
 def redshift_known(z) -> bool:

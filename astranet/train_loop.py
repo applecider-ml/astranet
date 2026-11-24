@@ -9,7 +9,7 @@
 #   - EMA (Exponential Moving Average) weights
 #   - Attention entropy regularisation
 #   - Per-class peak assembly: combines best-macro backbone with each
-#     class's individually best output-layer row (fixes seesaw problem)
+#     class's individually best output-layer row
 
 import os
 import sys

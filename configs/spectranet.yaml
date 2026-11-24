@@ -1,0 +1,37 @@
+# ASTRANet, SpectraNet backbone (Xu et al. 2026) with metadata dropout; heads, losses and split as in configs/tcn.yaml.
+# Data paths resolve inside data/; train with pipelines/train_seeds.py --config configs/spectranet.yaml --seed <seed>.
+
+# Data (not committed, see data/README.md)
+data:
+  dir:    data/object-split
+  rare_pt: data/rare_unknown.pt
+
+# Class set: every peculiar SN Ia subtype maps to Ia (label mapping at evaluation; training reads y from the split)
+class_set: with_ia_pec
+
+# Training
+seeds: [42, 123, 7]
+gpu_id: 0
+backbone: spectranet
+train_out: spectranet                # -> models/spectranet/seed<seed>/
+
+# Metadata dropout (training only): probability of withholding the redshift and the phase
+meta_dropout:
+  z: 0.4
+  phase: 0.3
+
+# Ensemble
+ensemble: spectranet6
+weights_source: spectranet
+
+# Anomaly detection
+target_far: 0.01
+combiner: lightgbm
+
+# Conformal
+alpha: 0.05
+n_quintiles: 5
+n_folds: 5
+
+# Observed-frame input, moved to the rest frame inside the network when the redshift is known
+z_shift: true

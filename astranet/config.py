@@ -9,7 +9,7 @@ from typing import List, Dict
 @dataclass
 class ASTRAConfig:
     # ── Paths ─────────────────────────────────────────────────
-    data_dir: str = "data/object-split-v7"   # relative or absolute
+    data_dir: str = "data/object-split"   # relative or absolute
     out_dir:  str = "runs/astra"
 
     # ── Data loading ──────────────────────────────────────────
@@ -81,7 +81,7 @@ class ASTRAConfig:
     w_fine:       float = 1.5
     w_coarse:     float = 0.3
     w_con_fine:   float = 0.02   # doubled for better Ibc/II separation
-    w_con_coarse: float = 0.02   # lower than original 0.05
+    w_con_coarse: float = 0.02
     temperature:  float = 0.07
     disable_contrastive_on_mixup: bool = True
 

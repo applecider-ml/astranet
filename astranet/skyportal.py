@@ -9,7 +9,7 @@ payload and calls this, so the logic is versioned here with the models it uses.
 Parameters (all optional): redshift (overrides the source value), use_redshift (True; when
 False the spectrum stays in the observed frame and the redshift token is withheld),
 models_dir (default $ASTRANET_MODELS or ./models), novelty (path of the novelty bundle; default
-$ASTRANET_NOVELTY or <models_dir>/novelty_v1.joblib; "off" disables the stage).
+$ASTRANET_NOVELTY or <models_dir>/novelty.joblib; "off" disables the stage).
 
 The novelty stage (astranet.novelty) scores the object against ordinary objects of the same redshift
 stratum and reports a p-value and alarms at 1, 5, 10 and 15 %. Novae are ordinary for this stage: they
@@ -68,7 +68,7 @@ def analyze(spectra, redshift=None, params: dict | None = None, resource_id: str
         z = None
     models_dir = params.get("models_dir") or os.environ.get("ASTRANET_MODELS", "models")
     ens = _ensemble(models_dir)
-    nov_path = params.get("novelty") or os.environ.get("ASTRANET_NOVELTY") or os.path.join(models_dir, "novelty_v1.joblib")
+    nov_path = params.get("novelty") or os.environ.get("ASTRANET_NOVELTY") or os.path.join(models_dir, "novelty.joblib")
     feats, grids = [], []
     rows = []
     for s in spectra:

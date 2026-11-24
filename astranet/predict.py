@@ -1,7 +1,7 @@
-"""Inference with the paper's ensemble (v7fixcombo12): six TCN members and six SpectraNet members.
+"""Inference with the paper's ensemble (astranet12): six TCN members and six SpectraNet members.
 
     from astranet.predict import Ensemble
-    ens = Ensemble.from_dir("models")              # models/trained_v7fixmd, models/trained_v7fixsn
+    ens = Ensemble.from_dir("models")              # models/tcn, models/spectranet
     out = ens.predict(wavelength, flux, redshift=0.05, phase=None)
 
 The spectrum is given in the observed frame; with a known redshift the members move it to the rest
@@ -18,7 +18,7 @@ from .config import ASTRAConfig
 from .model import ASTRANet
 from .preprocess import preprocess
 
-PARTS = (("trained_v7fixmd", "tcn"), ("trained_v7fixsn", "spectranet"))
+PARTS = (("tcn", "tcn"), ("spectranet", "spectranet"))
 SEEDS = (42, 123, 7)
 TAGS = ("best", "swa")
 
