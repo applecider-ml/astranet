@@ -9,7 +9,8 @@ payload and calls this, so the logic is versioned here with the models it uses.
 Parameters (all optional): redshift (overrides the source value), use_redshift (True; when
 False the spectrum stays in the observed frame and the redshift token is withheld),
 models_dir (default $ASTRANET_MODELS or ./models), novelty (path of the novelty bundle; default
-$ASTRANET_NOVELTY or <models_dir>/novelty.joblib; "off" disables the stage).
+$ASTRANET_NOVELTY or <models_dir>/novelty.joblib; "off" disables the stage), plot (False; when true a
+one-page PNG report is written to work_dir and its path returned in plot_files).
 
 The novelty stage (astranet.novelty) scores the object against ordinary objects of the same redshift
 stratum and reports a p-value and alarms at 1, 5, 10 and 15 %. Novae are ordinary for this stage: they
@@ -58,7 +59,7 @@ def _novelty(path):
     return _NOVELTY[path]
 
 
-def analyze(spectra, redshift=None, params: dict | None = None, resource_id: str = "obj") -> dict:
+def analyze(spectra, redshift=None, params: dict | None = None, resource_id: str = "obj", work_dir: str = ".") -> dict:
     """`spectra`: list of dicts with `wavelengths`, `fluxes` and optionally `id`, `observed_at`, `instrument`."""
     import numpy as np
     from .preprocess import SpectrumRejected
@@ -107,8 +108,12 @@ def analyze(spectra, redshift=None, params: dict | None = None, resource_id: str
     label = ASTRANET_TO_TAXONOMY.get(cls)
     classifications = [] if label is None else [dict(obj_id=resource_id, classification=label, probability=round(float(P[top]), 4),
                                                      taxonomy=SKYPORTAL_TAXONOMY, origin=SKYPORTAL_ORIGIN, ml=True)]
-    return dict(status="success", message=message,
-                results=dict(object=obj, novelty=novelty, spectra=rows), annotations=annotations, classifications=classifications)
+    out = dict(status="success", message=message,
+               results=dict(object=obj, novelty=novelty, spectra=rows), annotations=annotations, classifications=classifications)
+    if str(params.get("plot", False)).lower() in ("true", "1", "yes"):
+        from .report import make_report
+        out["plot_files"] = [make_report(out, np.stack(grids), os.path.join(work_dir, f"astranet_{resource_id}.png"), title=str(resource_id))]
+    return out
 
 
 def main(argv=None):
@@ -116,12 +121,13 @@ def main(argv=None):
     from .preprocess import read_dat
     ap = argparse.ArgumentParser(description="ASTRANet on exported SkyPortal spectra")
     ap.add_argument("files", nargs="+"); ap.add_argument("--redshift", type=float); ap.add_argument("--models-dir"); ap.add_argument("--novelty", help='novelty bundle, or "off"')
-    ap.add_argument("--observed-frame", action="store_true", help="withhold the redshift")
+    ap.add_argument("--observed-frame", action="store_true", help="withhold the redshift"); ap.add_argument("--report", help="write the PNG report to this directory")
     a = ap.parse_args(argv)
     spectra = []
     for f in a.files:
         w, fl = read_dat(f); spectra.append(dict(id=os.path.basename(f), wavelengths=w, fluxes=fl))
-    out = analyze(spectra, a.redshift, dict(models_dir=a.models_dir, novelty=a.novelty, use_redshift=not a.observed_frame))
+    out = analyze(spectra, a.redshift, dict(models_dir=a.models_dir, novelty=a.novelty, use_redshift=not a.observed_frame, plot=bool(a.report)),
+                  resource_id=os.path.splitext(os.path.basename(a.files[0]))[0], work_dir=a.report or ".")
     print(json.dumps(out, indent=1, default=float))
 
 
