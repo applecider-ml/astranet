@@ -35,7 +35,7 @@ def make_report(result: dict, grids, path, title: str = "") -> str:
     plt.rcParams.update({"font.size": 9, "axes.edgecolor": "#d1d5db", "axes.linewidth": 0.8, "xtick.color": MUTED, "ytick.color": MUTED,
                          "axes.labelcolor": INK, "text.color": INK, "font.family": "DejaVu Sans"})
     fig = plt.figure(figsize=(11.5, 6.6), facecolor="white")
-    gs = fig.add_gridspec(3, 2, width_ratios=[1.55, 1.0], height_ratios=[1.25, 1.0, 0.62], left=0.055, right=0.975, top=0.86, bottom=0.085, hspace=0.62, wspace=0.2)
+    gs = fig.add_gridspec(3, 2, width_ratios=[1.55, 1.0], height_ratios=[1.25, 1.0, 0.62], left=0.055, right=0.975, top=0.83, bottom=0.1, hspace=0.7, wspace=0.2)
 
     z = obj.get("redshift_used"); head = f"ASTRANet  ·  {title}" if title else "ASTRANet"
     fig.text(0.055, 0.945, head, fontsize=15, fontweight="bold", color=DEEP, va="center")
@@ -47,11 +47,11 @@ def make_report(result: dict, grids, path, title: str = "") -> str:
     # spectra
     ax = fig.add_subplot(gs[:, 0]); wl = np.linspace(WL_MIN, WL_MAX, grids.shape[1]); show = list(range(len(rows)))[:MAX_SPECTRA]
     for k, i in enumerate(show):
-        g = grids[i]; lo, hi = np.nanpercentile(g, [1, 99]); g = (g - lo) / (hi - lo + 1e-12); off = (len(show) - 1 - k) * 1.15
+        g = grids[i]; lo, hi = np.nanpercentile(g, [1, 99]); g = np.clip((g - lo) / (hi - lo + 1e-12), -0.05, 1.05); off = (len(show) - 1 - k) * 1.3
         same = rows[i]["predicted"] == obj["predicted"]
         ax.plot(wl, g + off, lw=0.8, color=ACCENT if same else MUTED)
-        ax.text(wl[-1] - 40, off + 1.02, _label(rows[i]), ha="right", va="bottom", fontsize=8, color=DEEP if same else MUTED)
-    ax.set_xlim(WL_MIN, WL_MAX); ax.set_ylim(-0.1, 1.15 * len(show) + 0.2); ax.set_yticks([]); ax.set_xlabel("observed wavelength (Å)")
+        ax.text(wl[-1] - 40, off + 1.1, _label(rows[i]), ha="right", va="bottom", fontsize=8, color=DEEP if same else MUTED)
+    ax.set_xlim(WL_MIN, WL_MAX); ax.set_ylim(-0.1, 1.3 * len(show) + 0.05); ax.set_yticks([]); ax.set_xlabel("observed wavelength (Å)")
     more = f" (first {MAX_SPECTRA} of {len(rows)})" if len(rows) > MAX_SPECTRA else ""
     ax.set_title("Spectra on the model grid, scaled and offset" + more, loc="left", fontsize=9.5, color=INK)
     for s in ("top", "right", "left"): ax.spines[s].set_visible(False)
@@ -77,15 +77,15 @@ def make_report(result: dict, grids, path, title: str = "") -> str:
     # novelty
     ax = fig.add_subplot(gs[2, 1]); ax.set_title("Novelty against ordinary objects", loc="left", fontsize=9.5, color=INK)
     if nov.get("status") == "ok":
-        p = max(float(nov["p_value"]), 1e-3); rates = [0.15, 0.10, 0.05, 0.01]; edges = [1.0] + rates + [1e-3]; shades = ["#f9fafb", PALE, "#fbcfe1", PINK, ACCENT]
+        p = max(float(nov["p_value"]), 1e-3); rates = [0.15, 0.10, 0.05, 0.01]; edges = [1.0] + rates + [5e-4]; shades = ["#f9fafb", PALE, "#fbcfe1", PINK, ACCENT]
         for a, b, c in zip(edges[:-1], edges[1:], shades): ax.axvspan(b, a, color=c, lw=0)
-        for r in rates: ax.text(r, 1.04, f"{int(round(r * 100))}%", ha="center", va="bottom", fontsize=7.5, color=MUTED, transform=ax.get_xaxis_transform())
-        ax.plot([p], [0.5], marker="v", ms=11, color=DEEP, mec="white", mew=1.2, clip_on=False)
-        ax.set_xscale("log"); ax.set_xlim(1.0, 1e-3); ax.set_ylim(0, 1); ax.set_yticks([]); ax.set_xlabel("p-value (alarm rates marked above)")
+        for r in rates: ax.text(r * 0.93, 0.93, f"{int(round(r * 100))}%", ha="left", va="top", fontsize=7.5, color="white" if r == 0.01 else INK, rotation=90, transform=ax.get_xaxis_transform())
+        ax.plot([p], [0.42], marker="v", ms=12, color=INK, mec="white", mew=1.4, clip_on=False, zorder=5)
+        ax.set_xscale("log"); ax.set_xlim(1.0, 5e-4); ax.set_ylim(0, 1); ax.set_yticks([])
         word = f"alarm at {nov['alarm_rate']}" if nov.get("alarm_rate") else "no alarm"
         strat = "redshift known" if nov.get("stratum") == "redshift" else "redshift unknown"
         fig.text(0.975, 0.905, f"novelty p = {nov['p_value']:.3f}   ·   {word}", fontsize=10.5, color=DEEP if nov.get("alarm_rate") else INK, ha="right", va="center", fontweight="bold" if nov.get("alarm_rate") else "normal")
-        ax.text(0.995, 0.08, f"{strat}, {nov.get('n_calibration')} calibration objects", transform=ax.transAxes, ha="right", va="bottom", fontsize=7.5, color=INK)
+        ax.set_xlabel(f"p-value among {nov.get('n_calibration')} ordinary objects ({strat})")
     else:
         ax.axis("off"); ax.text(0.0, 0.5, f"novelty stage {nov.get('status', 'off')}" + (f": {nov['reason']}" if nov.get("reason") else ""), va="center", fontsize=9, color=MUTED)
     fig.savefig(str(path), dpi=130); plt.close(fig)
