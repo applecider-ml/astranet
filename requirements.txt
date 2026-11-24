@@ -1,0 +1,16 @@
+# Pinned to the working `gwak-new` conda env on the LIGO cluster.
+# GPU build of torch (CUDA 12.8). For CPU-only, install plain torch.
+torch>=2.10        # built with cu128 in the reference env
+numpy>=1.24
+scipy>=1.11
+pandas>=2.0
+scikit-learn>=1.5
+lightgbm>=4.0
+umap-learn>=0.5
+plotly>=5.0
+seaborn>=0.13
+matplotlib>=3.7
+tqdm>=4.65
+pyyaml>=6.0
+# anomaly-detection layer (standalone package):
+luna-ood @ git+https://github.com/asasli/luna   # >= 0.4.1 (per-object calibration, multiview, conformal)
