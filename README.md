@@ -22,12 +22,13 @@ Three parts:
 ## Layout
 
 ```
-astranet/        model, config, dataset, losses, train_loop, predict.py, novelty.py, skyportal.py, uq/
+astranet/        model, config, dataset, losses, train_loop, predict.py, novelty.py, skyportal.py, report.py, uq/
 configs/         tcn.yaml, spectranet.yaml (the two backbones), *_reference.yaml (without metadata dropout)
 pipelines/       training, ensemble caches, classification with metadata withheld, service features
 study/           novelty and uncertainty study (run_study.sh); study/novelty/ holds the tables and figures
 tools/           fetch_weights.py, build_novelty.py
 data/            data/README.md describes the spectra (not part of the repository)
+docs/            project page (GitHub Pages)
 ```
 
 ## Install
@@ -40,7 +41,7 @@ python tools/fetch_weights.py --url <astranet_checkpoints.tar.gz> --novelty-url 
 ## Classify a spectrum
 
 ```bash
-python -m astranet.skyportal spectrum.dat --redshift 0.05
+python -m astranet.skyportal spectrum.dat --redshift 0.05 --report .     # also writes the PNG report
 ```
 
 ```python
