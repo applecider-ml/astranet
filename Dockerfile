@@ -5,6 +5,10 @@ FROM python:3.12-slim-bookworm
 ARG WEIGHTS_URL=https://github.com/applecider-ml/astranet/releases/download/v1.0.0/astranet_checkpoints.tar.gz
 ARG NOVELTY_URL=https://github.com/applecider-ml/astranet/releases/download/v1.0.0/novelty.joblib
 
+# git: pip installs the LUNA dependency from its repository.
+RUN apt-get update && apt-get install -y --no-install-recommends git \
+    && rm -rf /var/lib/apt/lists/*
+
 ENV PIP_NO_CACHE_DIR=1 \
     MPLBACKEND=Agg \
     PYTHONDONTWRITEBYTECODE=1 \
