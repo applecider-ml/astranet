@@ -3,7 +3,7 @@
 Spectroscopic classification and object-level novelty detection for transients, the research
 pipeline behind *ASTRANet: Metadata-Robust Spectroscopic Classification and Object-Level Novelty
 Detection* (Sasli et al., submitted to PASP). The inference-only package that SkyPortal runs is
-[astranet-public](https://github.com/applecider-ml/astranet); this repository trains, selects and
+[astranet](https://github.com/applecider-ml/astranet); this repository trains, selects and
 evaluates the model it ships and contains the study that produces every number of the paper.
 
 Three modules:
